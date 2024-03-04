@@ -594,6 +594,7 @@ int Internal::try_to_satisfy_formula_by_saved_phases () {
   assert (propagated == trail.size ());
   force_saved_phase = true;
   if (external_prop) {
+    assert (!level);
     LOG ("external notifications are turned off during preprocessing.");
     private_steps = true;
   }
@@ -619,6 +620,10 @@ int Internal::try_to_satisfy_formula_by_saved_phases () {
   if (external_prop) {
     private_steps = false;
     LOG("external notifications are turned back on.");
+    if (!level) notify_assignments (); // In case fixed assignments were found.
+    else {
+      renotify_trail_after_local_search ();
+    }
   }
   return res;
 }
@@ -729,6 +734,8 @@ int Internal::solve (bool preprocess_only) {
       assert (control.size () > 1);
       stats.literalsreused += num_assigned - control[1].trail;
     }
+    if (external->propagator) 
+      renotify_trail_after_ilb ();
   }
   if (preprocess_only)
     LOG ("internal solving in preprocessing only mode");
@@ -833,6 +840,15 @@ int Internal::lookahead () {
   START (lookahead);
   assert (!lookingahead);
   lookingahead = true;
+  if (external_prop) {
+    if (level) {
+      // Combining lookahead with external propagator is limited
+      // Note that lookahead_probing (); would also force backtrack anyway
+      backtrack ();
+    }
+    LOG ("external notifications are turned off during preprocessing.");
+    private_steps = true;
+  }
   int tmp = already_solved ();
   if (!tmp)
     tmp = restore_clauses ();
@@ -846,6 +862,11 @@ int Internal::lookahead () {
   assert (lookingahead);
   lookingahead = false;
   STOP (lookahead);
+  if (external_prop) {
+    private_steps = false;
+    LOG("external notifications are turned back on.");
+    notify_assignments (); // In case fixed assignments were found.
+  }
   return res;
 }
 
