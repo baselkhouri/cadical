@@ -332,6 +332,10 @@ struct External {
 
   /*----------------------------------------------------------------------*/
 
+  void trim (ClauseIterator &);
+
+  /*----------------------------------------------------------------------*/
+
   int lookahead ();
   CaDiCaL::CubesWithStatus generate_cubes (int, int);
 

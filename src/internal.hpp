@@ -58,6 +58,7 @@ extern "C" {
 #include "cover.hpp"
 #include "decompose.hpp"
 #include "drattracer.hpp"
+#include "drupper.hpp"
 #include "elim.hpp"
 #include "ema.hpp"
 #include "external.hpp"
@@ -256,6 +257,7 @@ struct Internal {
   Inc inc;                  // increments on limits
 
   Proof *proof;             // abstraction layer between solver and tracers
+  Drupper * drupper;        // incremental drup based proof core and interpolants
   LratBuilder *lratbuilder; // special proof tracer
   vector<Tracer *>
       tracers; // proof tracing objects (ie interpolant calulator)
@@ -518,6 +520,7 @@ struct Internal {
   // of a clause and during connecting back all watches after preprocessing.
   //
   inline void watch_clause (Clause *c) {
+    assert (c->size > 1);
     const int l0 = c->literals[0];
     const int l1 = c->literals[1];
     watch_literal (l0, l1, c);
@@ -588,7 +591,7 @@ struct Internal {
   void deallocate_clause (Clause *);
   void delete_clause (Clause *);
   void mark_garbage (Clause *);
-  void assign_original_unit (uint64_t, int);
+  void assign_original_unit (uint64_t, int, bool);
   void add_new_original_clause (uint64_t);
   Clause *new_learned_redundant_clause (int glue);
   Clause *new_hyper_binary_resolved_clause (bool red, int glue);
@@ -604,6 +607,7 @@ struct Internal {
   void search_assign_driving (int lit, Clause *reason);
   void search_assign_external (int lit);
   void search_assume_decision (int decision);
+  void search_assume_multiple_decisions (const vector<int> &);
   void assign_unit (int lit);
   bool propagate ();
 
@@ -1329,6 +1333,9 @@ struct Internal {
   void flush_trace (bool stats = false); // Flush proof trace file.
   void trace (File *);                   // Start write proof file.
   void check ();                         // Enable online proof checking.
+  void drup ();                          // Enable drupper
+  void trim (ClauseIterator &);            // drupper->trim
+
 
   void connect_proof_tracer (Tracer *tracer, bool antecedents);
   void connect_proof_tracer (InternalTracer *tracer, bool antecedents);

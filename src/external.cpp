@@ -103,6 +103,13 @@ void External::reset_limits () { internal->reset_limits (); }
 
 /*------------------------------------------------------------------------*/
 
+// DRUP trim
+void External::trim (ClauseIterator &it) {
+  internal->trim (it);
+}
+
+/*------------------------------------------------------------------------*/
+
 int External::internalize (int elit) {
   int ilit;
   if (elit) {

@@ -395,7 +395,9 @@ bool Internal::resolve_clauses (Eliminator &eliminator, Clause *c,
     LOG ("empty resolvent");
     // TODO: lrat?? c or d (or both) should be sufficient.
     // -> also need all unit ids (for negated lits in c and d)
+    conflict = d;
     learn_empty_clause (); // already clears lrat_chain.
+    conflict = 0;
     return false;
   }
 

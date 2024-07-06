@@ -225,6 +225,8 @@ size_t Internal::shrink_clause (Clause *c, int new_size) {
 // reclaimed immediately.
 
 void Internal::deallocate_clause (Clause *c) {
+  if (drupper)
+    drupper->deallocate_clause (c);
   char *p = (char *) c;
   if (arena.contains (p))
     return;
@@ -277,7 +279,7 @@ void Internal::delete_clause (Clause *c) {
 //
 void Internal::mark_garbage (Clause *c) {
 
-  assert (!c->garbage);
+  assert (!c->garbage && c->size > 1);
 
   // Delay tracing deletion of binary clauses.  See the discussion above in
   // 'delete_clause' and also in 'propagate'.
@@ -285,6 +287,9 @@ void Internal::mark_garbage (Clause *c) {
   if (proof && c->size != 2) {
     proof->delete_clause (c);
   }
+
+  if (drupper)
+    drupper->delete_clause (c);
 
   assert (stats.current.total > 0);
   stats.current.total--;
@@ -314,7 +319,7 @@ void Internal::mark_garbage (Clause *c) {
 // Almost the same function as 'search_assign' except that we do not pretend
 // to learn a new unit clause (which was confusing in log files).
 
-void Internal::assign_original_unit (uint64_t id, int lit) {
+void Internal::assign_original_unit (uint64_t id, int lit, bool derived) {
   assert (!level || opts.chrono);
   assert (!unsat);
   const int idx = vidx (lit);
@@ -324,6 +329,8 @@ void Internal::assign_original_unit (uint64_t id, int lit) {
   v.level = 0;
   v.trail = (int) trail.size ();
   v.reason = 0;
+  if (drupper)
+    drupper->add_derived_unit_clause(lit, !derived);
   const signed char tmp = sign (lit);
   set_val (idx, tmp);
   trail.push_back (lit);
@@ -363,6 +370,7 @@ void Internal::add_new_original_clause (uint64_t id) {
   LOG (original, "original clause");
   assert (clause.empty ());
   bool skip = false;
+  size_t duplicated = 0;
   unordered_set<int> learned_levels;
   size_t unassigned = 0;
   newest_clause = 0;
@@ -375,6 +383,7 @@ void Internal::add_new_original_clause (uint64_t id) {
       int tmp = marked (lit);
       if (tmp > 0) {
         LOG ("removing duplicated literal %d", lit);
+        duplicated++;
       } else if (tmp < 0) {
         LOG ("tautological since both %d and %d occur", -lit, lit);
         skip = true;
@@ -418,6 +427,8 @@ void Internal::add_new_original_clause (uint64_t id) {
   } else {
     uint64_t new_id = id;
     const size_t size = clause.size ();
+    const bool derived = (original.size () > (size + duplicated)) && size;
+    const bool empty_original = original.empty();
     if (original.size () > size) {
       new_id = ++clause_id;
       if (proof) {
@@ -443,6 +454,8 @@ void Internal::add_new_original_clause (uint64_t id) {
       conflict_id = new_id;
       marked_failed = true;
       conclusion.push_back (new_id);
+      if (drupper && derived)
+        drupper->delete_clause (original, true);
     } else if (size == 1) {
       if (force_no_backtrack) {
         assert (level);
@@ -463,8 +476,10 @@ void Internal::add_new_original_clause (uint64_t id) {
           backtrack (var (lit).level - 1);
         assert (val (lit) >= 0);
         handle_external_clause (0);
-        assign_original_unit (new_id, lit);
+        assign_original_unit (new_id, lit, derived);
       }
+      if (drupper && derived)
+        drupper->delete_clause (original, true);
     } else {
       move_literal_to_watch (false);
       move_literal_to_watch (true);
@@ -477,10 +492,23 @@ void Internal::add_new_original_clause (uint64_t id) {
       c->id = new_id;
       clause_id--;
       watch_clause (c);
+      if (drupper && derived) {
+        drupper->add_derived_clause (c);
+        drupper->delete_clause (original, true);
+      }
       clause.clear ();
       original.clear ();
       handle_external_clause (c);
       newest_clause = c;
+    }
+    if (drupper && !size && !empty_original) {
+      drupper->add_falsified_original_clause (original, derived);
+      struct Dummy : public ClauseIterator {
+        bool clause (const std::vector<int> &) { return true; }
+        bool assumption (const int) { return true; }
+        bool constraint (const std::vector<int> &) { return true; }
+      } it;
+      trim (it);
     }
   }
   clause.clear ();
@@ -503,6 +531,8 @@ Clause *Internal::new_learned_redundant_clause (int glue) {
   if (proof) {
     proof->add_derived_clause (res, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_clause (res);
   assert (watching ());
   watch_clause (res);
   return res;
@@ -516,6 +546,8 @@ Clause *Internal::new_hyper_binary_resolved_clause (bool red, int glue) {
   if (proof) {
     proof->add_derived_clause (res, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_clause (res);
   assert (watching ());
   watch_clause (res);
   return res;
@@ -530,6 +562,8 @@ Clause *Internal::new_hyper_ternary_resolved_clause (bool red) {
   if (proof) {
     proof->add_derived_clause (res, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_clause (res);
   assert (!watching ());
   return res;
 }
@@ -545,6 +579,8 @@ Clause *Internal::new_clause_as (const Clause *orig) {
   if (proof) {
     proof->add_derived_clause (res, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_clause (res);
   assert (watching ());
   watch_clause (res);
   return res;
@@ -559,6 +595,8 @@ Clause *Internal::new_resolved_irredundant_clause () {
   if (proof) {
     proof->add_derived_clause (res, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_clause (res);
   assert (!watching ());
   return res;
 }

@@ -1237,6 +1237,7 @@ struct ConstrainCall : public Call {
 struct ConnectCall : public Call {
   ConnectCall () : Call (CONNECT) {}
   void execute (Solver *&s) {
+    return;
     // clean up if there was already one mock propagator
     MockPropagator *prev_pointer = 0;
     if (mobical.mock_pointer)
@@ -1299,6 +1300,7 @@ struct LemmaCall : public Call {
 struct DisconnectCall : public Call {
   DisconnectCall () : Call (DISCONNECT) {}
   void execute (Solver *&s) {
+    return;
     MockPropagator *mp =
         static_cast<MockPropagator *> (s->get_propagator ());
     mp->remove_new_observed_var ();

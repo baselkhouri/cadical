@@ -132,7 +132,7 @@ struct Clause {
     // of a clause is 8 bytes anyhow, we just allocate 8 byte aligned memory
     // all the time (even if allocated outside of the arena).
     //
-    assert (size > 1);
+    assert (size > 0);
     const size_t header_bytes = sizeof (Clause);
     const size_t actual_literal_bytes = size * sizeof (int);
     size_t combined_bytes = header_bytes + actual_literal_bytes;

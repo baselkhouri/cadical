@@ -20,7 +20,7 @@ Internal::Internal ()
       tainted_literal (0), notified (0), probe_reason (0), propagated (0),
       propagated2 (0), propergated (0), best_assigned (0),
       target_assigned (0), no_conflict_until (0), unsat_constraint (false),
-      marked_failed (true), num_assigned (0), proof (0), lratbuilder (0),
+      marked_failed (true), num_assigned (0), drupper (0), proof (0), lratbuilder (0),
       opts (this),
 #ifndef QUIET
       profiles (this), force_phase_messages (false),
@@ -47,6 +47,8 @@ Internal::Internal ()
 }
 
 Internal::~Internal () {
+  if (drupper)
+    delete drupper, drupper = 0;
   delete[](char *) dummy_binary;
   for (const auto &c : clauses)
     delete_clause (c);
@@ -296,6 +298,15 @@ int Internal::cdcl_loop_with_inprocessing () {
   }
 
   STOP (search);
+
+  if (drupper && res == 20) {
+    struct Dummy : public ClauseIterator {
+      bool clause (const std::vector<int> &) { return true; }
+      bool assumption (const int) { return true; }
+      bool constraint (const std::vector<int> &) { return true; }
+    } it;
+    trim (it);
+  }
 
   return res;
 }
@@ -895,6 +906,8 @@ void Internal::print_statistics () {
   stats.print (this);
   for (auto &st : stat_tracers)
     st->print_stats ();
+  if (drupper)
+    drupper->print_stats ();
 }
 
 /*------------------------------------------------------------------------*/

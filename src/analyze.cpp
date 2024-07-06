@@ -21,6 +21,8 @@ void Internal::learn_empty_clause () {
   if (proof) {
     proof->add_derived_empty_clause (id, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_empty_clause ();
   unsat = true;
   conflict_id = id;
   marked_failed = true;
@@ -38,6 +40,8 @@ void Internal::learn_unit_clause (int lit) {
   if (proof) {
     proof->add_derived_unit_clause (id, lit, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_unit_clause (lit);
   mark_fixed (lit);
 }
 
@@ -716,6 +720,9 @@ Clause *Internal::on_the_fly_strengthen (Clause *new_conflict, int uip) {
   sorted.reserve (new_conflict->size);
   assert (sorted.empty ());
   ++stats.otfs.strengthened;
+
+  if (drupper)
+    drupper->add_updated_clause (new_conflict);
 
   int *lits = new_conflict->literals;
 

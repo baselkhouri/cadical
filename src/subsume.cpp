@@ -183,6 +183,8 @@ void Internal::strengthen_clause (Clause *c, int lit) {
     LOG (lrat_chain, "strengthening clause with chain");
     proof->strengthen_clause (c, lit, lrat_chain);
   }
+  if (drupper)
+    drupper->add_updated_clause (c);
   if (!c->redundant)
     mark_removed (lit);
   auto new_end = remove (c->begin (), c->end (), lit);

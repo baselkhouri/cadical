@@ -213,6 +213,7 @@ class Tracer;
 class InternalTracer;
 class FileTracer;
 class StatTracer;
+class ClauseIterator;
 
 /*------------------------------------------------------------------------*/
 
@@ -441,6 +442,15 @@ public:
   //   ensure (UNSATISFIED)
   //
   bool constraint_failed ();
+
+  //------------------------------------------------------------------------
+
+  // DRUP trim
+  //
+  //   require (UNSATISFIED)
+  //   ensure (UNSATISFIED)
+  //
+  void trim (ClauseIterator &);
 
   //------------------------------------------------------------------------
   // This function determines a good splitting literal.  The result can be

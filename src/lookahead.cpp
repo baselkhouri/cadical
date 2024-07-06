@@ -285,7 +285,7 @@ bool Internal::terminating_asked () {
 //
 int Internal::lookahead_probing () {
 
-  if (!active ())
+  if (!active () || drupper)
     return 0;
 
   MSG ("lookahead-probe-round %" PRId64

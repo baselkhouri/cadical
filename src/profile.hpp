@@ -52,6 +52,12 @@ struct Internal;
   PROFILE (cover, 2) \
   PROFILE (decide, 3) \
   PROFILE (decompose, 3) \
+  PROFILE (drup_trim, 2) \
+  PROFILE (drup_analyze, 2) \
+  PROFILE (drup_inprocess, 2) \
+  PROFILE (drup_propagate, 2) \
+  PROFILE (drup_reconstruct, 2) \
+  PROFILE (drup_repropagate, 2) \
   PROFILE (elim, 2) \
   PROFILE (extend, 3) \
   PROFILE (instantiate, 2) \
