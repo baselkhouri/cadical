@@ -41,6 +41,8 @@ void Solver::transition_to_steady_state () {
   if (state () == CONFIGURING) {
     LOG ("API leaves state %sCONFIGURING%s", tout.emph_code (),
          tout.normal_code ());
+    if (internal->opts.drup)
+      internal->drup ();
     if (internal->opts.check && internal->opts.checkproof) {
       internal->check ();
     }
@@ -814,6 +816,28 @@ void Solver::unphase (int lit) {
   REQUIRE_VALID_LIT (lit);
   external->unphase (lit);
   LOG_API_CALL_END ("unphase", lit);
+}
+
+/*------------------------------------------------------------------------*/
+
+void Solver::trim (ClauseIterator &it) {
+  TRACE ("trim");
+  REQUIRE_VALID_STATE ();
+  REQUIRE (state () == UNSATISFIED,
+    "can only trim if instance has been found unsatisfiable");
+  REQUIRE (internal->opts.drup == 1,
+    "drup option must be already set");
+  external->trim (it);
+}
+
+void Solver::trim_and_replay (ClauseIterator *core_it, ResolutionIterator &proof_it) {
+  TRACE ("trim");
+  REQUIRE_VALID_STATE ();
+  REQUIRE (state () == UNSATISFIED,
+    "can only trim if instance has been found unsatisfiable");
+  REQUIRE (internal->opts.drup == 1,
+    "drup option must be already set");
+  external->trim_and_replay (core_it, proof_it);
 }
 
 /*------------------------------------------------------------------------*/

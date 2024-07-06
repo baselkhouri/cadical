@@ -89,6 +89,9 @@ void Internal::failing () {
   assert (!marked_failed);
   assert (!conflict_id);
 
+  if (drupper)
+    drupper->clear_failing_assumption ();
+
   if (!unsat_constraint) {
     // Search for failing assumptions in the (internal) assumption stack.
 
@@ -180,6 +183,8 @@ void Internal::failing () {
     if (failed_unit) {
       assert (failed == failed_unit);
       LOG ("root-level falsified assumption %d", failed);
+      if (drupper)
+        drupper->add_failing_assumption (failed);
       if (proof) {
         if (lrat) {
           unsigned eidx = (efailed > 0) + 2u * (unsigned) abs (efailed);
@@ -209,6 +214,8 @@ void Internal::failing () {
       const unsigned bit = bign (-failed);
       assert (!(f.failed & bit));
       f.failed |= bit;
+      if (drupper)
+        drupper->add_failing_assumption (failed);
       if (proof) {
         vector<int> clash = {externalize (failed), externalize (-failed)};
         proof->add_assumption_clause (++clause_id, clash, lrat_chain);
@@ -390,6 +397,8 @@ void Internal::failing () {
         proof->add_assumption_clause (++clause_id, eclause, lrat_chain);
         conclusion.push_back (clause_id);
       }
+      if (drupper)
+        drupper->add_failing_assumption (clause);
     } else {
       assert (!lrat || (constraint.size () == constraint_clauses.size () &&
                         constraint.size () == constraint_chains.size ()));
@@ -403,6 +412,8 @@ void Internal::failing () {
         }
         clause.push_back (-lit);
         external->check_learned_clause ();
+        if (drupper)
+          drupper->add_failing_assumption (clause);
         if (proof) {
           if (lrat) {
             for (auto p : constraint_chains.back ()) {

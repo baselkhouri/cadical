@@ -100,7 +100,7 @@ void Internal::build_chain_for_empty () {
 
 /*------------------------------------------------------------------------*/
 
-inline void Internal::search_assign (int lit, Clause *reason) {
+void Internal::search_assign (int lit, Clause *reason) {
 
   if (level)
     require_mode (SEARCH);
@@ -108,7 +108,7 @@ inline void Internal::search_assign (int lit, Clause *reason) {
   const int idx = vidx (lit);
   const bool from_external = reason == external_reason;
   assert (!val (idx));
-  assert (!flags (idx).eliminated () || reason == decision_reason ||
+  assert (drupper || !flags (idx).eliminated () || reason == decision_reason ||
           reason == external_reason);
   Var &v = var (idx);
   int lit_level;
@@ -132,12 +132,20 @@ inline void Internal::search_assign (int lit, Clause *reason) {
     lit_level = assignment_level (lit, reason);
   else
     lit_level = level;
-  if (!lit_level)
+  if (!drupper && !lit_level)
     reason = 0;
 
   v.level = lit_level;
   v.trail = trail.size ();
   v.reason = reason;
+  if (drupper && reason) {
+    int * lits = reason->literals;
+    for (int i = 0; i < reason->size && lits[0] != lit; i++) {
+      if (lits[i] != lit) continue;
+      lits[i] = lits[0];
+      lits[0] = lit;
+    }
+  }
   assert ((int) num_assigned < max_var);
   assert (num_assigned == trail.size ());
   num_assigned++;
@@ -193,6 +201,17 @@ void Internal::search_assume_decision (int lit) {
   search_assign (lit, decision_reason);
 }
 
+void Internal::search_assume_multiple_decisions (const vector<int> & decisions) {
+  require_mode (SEARCH);
+  assert (propagated == trail.size () && decisions.size ());
+  for (int lit : decisions) {
+    level++;
+    control.push_back (Level (lit, trail.size()));
+    LOG ("search decide %d", lit);
+    search_assign (lit, decision_reason);
+  }
+}
+
 void Internal::search_assign_driving (int lit, Clause *c) {
   require_mode (SEARCH);
   search_assign (lit, c);
@@ -224,7 +243,7 @@ void Internal::search_assign_external (int lit) {
 // propagation costs (2013 JAIR article by Ian Gent) at the expense of four
 // more bytes for each clause.
 
-bool Internal::propagate () {
+bool Internal::propagate (bool core_only, int color) {
 
   if (level)
     require_mode (SEARCH);
@@ -255,6 +274,13 @@ bool Internal::propagate () {
       if (b > 0)
         continue; // blocking literal satisfied
 
+      if (drupper) {
+        if (core_only && !drupper->core (w.clause))
+          continue;
+        if (color && color < drupper->range (w.clause).max ())
+          continue;
+      }
+
       if (w.binary ()) {
 
         // assert (w.clause->redundant || !w.clause->garbage);
@@ -262,7 +288,7 @@ bool Internal::propagate () {
         // In principle we can ignore garbage binary clauses too, but that
         // would require to dereference the clause pointer all the time with
         //
-        // if (w.clause->garbage) { j--; continue; } // (*)
+        if (drupper && w.clause->garbage) { j--; continue; } // (*)
         //
         // This is too costly.  It is however necessary to produce correct
         // proof traces if binary clauses are traced to be deleted ('d ...'

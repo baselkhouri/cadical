@@ -103,6 +103,16 @@ void External::reset_limits () { internal->reset_limits (); }
 
 /*------------------------------------------------------------------------*/
 
+void External::trim (ClauseIterator &it) {
+  internal->trim (it);
+}
+
+void External::trim_and_replay (ClauseIterator *core_it, ResolutionIterator &proof_it) {
+  internal->trim_and_replay (core_it, proof_it);
+}
+
+/*------------------------------------------------------------------------*/
+
 int External::internalize (int elit) {
   int ilit;
   if (elit) {

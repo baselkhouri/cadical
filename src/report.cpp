@@ -55,6 +55,8 @@ s  subsumed clause removal round
 t  transition reduction of binary implication graph
 w  vivified redundant and irredundant clauses
 v  vivified irredundant clauses
+m  drupper undo trail core step executed
+M  drupper trim completed successfully
 
 The order of the list follows the occurrences of 'report' in the source
 files, i.e., obtained from "grep 'report (' *.cpp".   Note that some of the
@@ -231,6 +233,12 @@ void Internal::report (char type, int verbose) {
   case '2':
   case '3':
     tout.blue (false);
+    break;
+  case 'm':
+    tout.cyan (true);
+    break;
+  case 'M':
+    tout.green (true);
     break;
   case 'd':
     tout.blue (true);

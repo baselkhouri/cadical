@@ -270,6 +270,11 @@ bool Internal::resolve_clauses (Eliminator &eliminator, Clause *c,
 
   stats.elimres++;
 
+  if (drupper) {
+    drupper->init_range (c);
+    drupper->join_range (d);
+  }
+
   if (c->garbage || d->garbage)
     return false;
   if (c->size > d->size) {
@@ -395,7 +400,9 @@ bool Internal::resolve_clauses (Eliminator &eliminator, Clause *c,
     LOG ("empty resolvent");
     // TODO: lrat?? c or d (or both) should be sufficient.
     // -> also need all unit ids (for negated lits in c and d)
+    conflict = d;
     learn_empty_clause (); // already clears lrat_chain.
+    conflict = 0;
     return false;
   }
 

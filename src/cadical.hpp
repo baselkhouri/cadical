@@ -213,6 +213,8 @@ class Tracer;
 class InternalTracer;
 class FileTracer;
 class StatTracer;
+class ChainDerivation;
+class ResolutionIterator;
 
 /*------------------------------------------------------------------------*/
 
@@ -441,6 +443,25 @@ public:
   //   ensure (UNSATISFIED)
   //
   bool constraint_failed ();
+
+  //------------------------------------------------------------------------
+
+  // in-memory DRUP trim.
+  // Provided clause iterator is used to traverse the origianl core clauses.
+  //
+  //   require (UNSATISFIED)
+  //   ensure (UNSATISFIED)
+  //
+  void trim (ClauseIterator &);
+
+  // in-memory DRUP trim and replay.
+  // If proveided, clause iterator is used to traverse the origianl core clauses.
+  // Proveided resolution iterator is used to traverse replayed resolution proof.
+  //
+  //   require (UNSATISFIED)
+  //   ensure (UNSATISFIED)
+  //
+  void trim_and_replay (ClauseIterator *, ResolutionIterator &);
 
   //------------------------------------------------------------------------
   // This function determines a good splitting literal.  The result can be
@@ -1189,6 +1210,44 @@ class ClauseIterator {
 public:
   virtual ~ClauseIterator () {}
   virtual bool clause (const std::vector<int> &) = 0;
+};
+
+// It is convenient to capture chain derivation in a special class.
+//
+// clauses[i].first holds the literals clause.
+// clauses[i].second holds a uniqe id for the clause.
+//
+// resolvent[0] = clauses[0], and is the 'anchor' of the chain.
+// For each i > 0, resolvent[i] is derived from resolving resolvent[i-1]
+// with clauses[i] on pivots[i].
+
+class ChainDerivation {
+public:
+  std::vector<int> pivots;
+  std::vector<std::pair<std::vector<int>, int>> clauses;
+  void clear () { clauses.clear (), pivots.clear (); }
+  bool empty () const { return clauses.empty () && pivots.empty (); }
+};
+
+// Allows to traverse the resolution graph graph.
+//
+// For each node in the graph, the iterator will be notified with a
+// resolvent and its chain derivation accordingly. Empty clause derivation
+// is notified with the special method 'empty_resolvent'.
+//
+// For convenience, the iterator attaches a uniqe id to every clause.
+// Note that with that being said, there is no guarantee on the order the
+// id values are given, and an id of a clause does not necessarily match
+// the id set in the internal solver.
+//
+// If 'resolvent' or 'empty_resolvent' returns false traversal aborts early.
+
+class ResolutionIterator {
+public:
+  virtual ~ResolutionIterator () {}
+  virtual bool resolvent (const ChainDerivation &chain,
+                          const std::vector<int> &parent, int id) = 0;
+  virtual bool empty_resolvent (const ChainDerivation &chain) = 0;
 };
 
 /*------------------------------------------------------------------------*/

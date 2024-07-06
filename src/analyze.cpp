@@ -21,6 +21,8 @@ void Internal::learn_empty_clause () {
   if (proof) {
     proof->add_derived_empty_clause (id, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_empty_clause ();
   unsat = true;
   conflict_id = id;
   marked_failed = true;
@@ -38,6 +40,8 @@ void Internal::learn_unit_clause (int lit) {
   if (proof) {
     proof->add_derived_unit_clause (id, lit, lrat_chain);
   }
+  if (drupper)
+    drupper->add_derived_unit_clause (lit);
   mark_fixed (lit);
 }
 
@@ -257,6 +261,8 @@ inline void Internal::analyze_literal (int lit, int &open,
   Flags &f = flags (lit);
 
   if (!v.level) {
+    if (drupper)
+      drupper->join_range (lit);
     if (f.seen || !lrat)
       return;
     f.seen = true;
@@ -717,6 +723,9 @@ Clause *Internal::on_the_fly_strengthen (Clause *new_conflict, int uip) {
   assert (sorted.empty ());
   ++stats.otfs.strengthened;
 
+  if (drupper)
+    drupper->add_updated_clause (new_conflict);
+
   int *lits = new_conflict->literals;
 
   assert (lits[0] == uip || lits[1] == uip);
@@ -977,6 +986,9 @@ void Internal::analyze () {
   int resolved = 0; // number of resolution (0 = clause in CNF)
   const bool otfs = opts.otfs;
 
+  if (drupper)
+    drupper->init_range (conflict);
+
   for (;;) {
     antecedent_size = 1; // for uip
     analyze_reason (uip, reason, open, resolvent_size, antecedent_size);
@@ -1126,6 +1138,9 @@ void Internal::analyze () {
   int jump;
   Clause *driving_clause = new_driving_clause (glue, jump);
   UPDATE_AVERAGE (averages.current.jump, jump);
+
+  if (drupper)
+    drupper->add_range (driving_clause);
 
   int new_level = determine_actual_backtrack_level (jump);
   UPDATE_AVERAGE (averages.current.level, new_level);
