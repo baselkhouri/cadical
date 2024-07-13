@@ -650,13 +650,15 @@ bool Drup2Itp::trim (CaDiCaL::ClauseIterator &it, bool undo) {
 
   if (undo) {
     // For application where only core is needed
-    for (Clause *c : proof) {
+    for (uint64_t i = 0; i < size_clauses; i++)
+      for (Clause *c = clauses[i]; c; c = c->next)
+        c->core = false;
+    for (Clause *c : proof)
       c->garbage = !c->garbage;
-      c->core = false;
-    }
     if (!empty_original_clause)
       restore_trail ();
   }
+
   return true;
 }
 
@@ -1038,7 +1040,7 @@ void Drup2Itp::dump (const char *type) {
     fprintf (stderr, "DUMP CORE START\n");
     for (uint64_t i = 0; i < size_clauses; i++)
       for (Clause *c = clauses[i]; c; c = c->next) {
-        if (!c->core)
+        if (!c->core || !c->original)
           continue;
         fprintf (stderr, "[%s] id:[%lu] c:[ ",
                  c->original ? "orig" : "deri", c->id);
